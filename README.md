@@ -192,9 +192,13 @@ docker images | grep city-population-api
 ### 2. Test the Docker Image Locally
 
 ```bash
-# Run Elasticsearch (if not already running)
+# Create a custom network
+docker network create city-network
+
+# Run Elasticsearch
 docker run -d \
   --name elasticsearch \
+  --network city-network \
   -p 9200:9200 \
   -e "discovery.type=single-node" \
   -e "xpack.security.enabled=false" \
@@ -203,9 +207,9 @@ docker run -d \
 # Run the application container
 docker run -d \
   --name city-api \
+  --network city-network \
   -p 8000:8000 \
   -e ELASTICSEARCH_HOST="http://elasticsearch:9200" \
-  --link elasticsearch:elasticsearch \
   city-population-api:1.0.0
 
 # Check logs
@@ -494,67 +498,6 @@ curl http://localhost:8080/cities
     {"city": "tokyo", "population": 13960000}
   ]
 }
-```
-
----
-
-## Testing the API
-
-### Automated Test Script
-
-Create a test script `test-api.sh`:
-
-```bash
-#!/bin/bash
-
-API_URL="http://localhost:8080"
-
-echo "=== Testing City Population API ==="
-
-# Test 1: Health Check
-echo "\n1. Health Check"
-curl -s $API_URL/health | jq .
-
-# Test 2: Insert Cities
-echo "\n2. Insert Cities"
-curl -s -X POST $API_URL/city \
-  -H "Content-Type: application/json" \
-  -d '{"city": "Tokyo", "population": 13960000}' | jq .
-
-curl -s -X POST $API_URL/city \
-  -H "Content-Type: application/json" \
-  -d '{"city": "London", "population": 9002488}' | jq .
-
-curl -s -X POST $API_URL/city \
-  -H "Content-Type: application/json" \
-  -d '{"city": "New York", "population": 8336817}' | jq .
-
-# Test 3: Query Cities
-echo "\n3. Query Cities"
-curl -s $API_URL/city/tokyo | jq .
-curl -s $API_URL/city/london | jq .
-
-# Test 4: Update City
-echo "\n4. Update City"
-curl -s -X POST $API_URL/city \
-  -H "Content-Type: application/json" \
-  -d '{"city": "Tokyo", "population": 14000000}' | jq .
-
-# Test 5: List All Cities
-echo "\n5. List All Cities"
-curl -s $API_URL/cities | jq .
-
-# Test 6: Query Non-existent City (404)
-echo "\n6. Query Non-existent City (Should return 404)"
-curl -s -w "\nHTTP Status: %{http_code}\n" $API_URL/city/unknown | jq .
-
-echo "\n=== Tests Complete ==="
-```
-
-Run the tests:
-```bash
-chmod +x test-api.sh
-./test-api.sh
 ```
 
 ---

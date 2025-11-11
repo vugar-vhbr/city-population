@@ -69,17 +69,14 @@ elasticsearch:
   createCert: false
 
   # Elasticsearch roles for this node group
+  # For development: using minimal required roles
+  # - master: cluster management
+  # - data: store and search data
+  # - ingest: document preprocessing (optional but useful)
   roles:
     - master
     - data
-    - data_content
-    - data_hot
-    - data_warm
-    - data_cold
     - ingest
-    - ml
-    - remote_cluster_client
-    - transform
 
   # JVM heap size (should be ~50% of memory limit)
   esJavaOpts: "-Xmx1g -Xms1g"
