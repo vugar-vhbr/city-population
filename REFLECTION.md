@@ -15,7 +15,7 @@ initContainers:
     command: ['sh', '-c']
     args:
       - |
-        until nc -z elasticsearch 9200; do
+        until nc -z elasticsearch-master 9200; do
           echo "Waiting for Elasticsearch..."
           sleep 5
         done
@@ -64,6 +64,46 @@ initContainers:
 - Created sensible defaults for development in `values.yaml`
 - Documented production-ready configurations in comments
 - Used environment variables for all configurable parameters
+
+### 7. Elasticsearch Protocol and Security Configuration
+
+**Challenge**: Elasticsearch 8.x defaults to HTTPS with security (X-Pack) enabled, causing connection failures from the application. The application was configured for HTTP connections but received "ServerDisconnectedError" because Elasticsearch was requiring HTTPS and authentication credentials.
+
+**Solution**:
+- Configured the official Elasticsearch Helm chart to use HTTP protocol for development
+- Disabled TLS certificate creation with `createCert: false`
+- Disabled X-Pack security features via `esConfig`:
+  ```yaml
+  elasticsearch:
+    protocol: http
+    createCert: false
+    esConfig:
+      elasticsearch.yml: |
+        xpack.security.enabled: false
+        xpack.security.enrollment.enabled: false
+  ```
+- Updated application environment variable to use HTTP: `ELASTICSEARCH_HOST: "http://elasticsearch-master:9200"`
+
+**Production Note**: For production environments, security should be re-enabled with proper TLS certificates and authentication.
+
+### 8. Storage Class Configuration for Minikube
+
+**Challenge**: PersistentVolumeClaim remained in "Pending" state because the storage class was explicitly set to empty string (`storageClassName: ""`), which disables automatic provisioning in Minikube.
+
+**Solution**:
+- Changed storage class from empty string to `"standard"` (Minikube's default storage class)
+- Enabled metrics-server addon for HPA functionality
+- Verified storage provisioner was enabled in Minikube
+- Configuration in values.yaml:
+  ```yaml
+  elasticsearch:
+    volumeClaimTemplate:
+      storageClassName: "standard"  # Use Minikube's standard storage class
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+  ```
 
 ---
 

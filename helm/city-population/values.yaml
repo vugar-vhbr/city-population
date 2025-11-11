@@ -48,41 +48,70 @@ app:
 
   # Environment variables
   env:
-    ELASTICSEARCH_HOST: "http://elasticsearch:9200"
+    ELASTICSEARCH_HOST: "http://elasticsearch-master:9200"
     ELASTICSEARCH_INDEX: "cities"
     DEBUG: "false"
 
-# Elasticsearch configuration
+# Elasticsearch configuration (using official Elastic Helm chart)
 elasticsearch:
   enabled: true  # Deploy Elasticsearch as part of this chart
 
-  # Master node configuration
-  master:
-    replicaCount: 1  # Single master for dev (use 3 for production)
+  # Cluster configuration
+  clusterName: "elasticsearch"
+  nodeGroup: "master"
 
-  # Data node configuration
-  data:
-    replicaCount: 1  # Single data node for dev (scale for production)
+  # Single node setup for development (use 3+ for production)
+  replicas: 1
+  minimumMasterNodes: 1
 
-  # Resource allocation for Elasticsearch
+  # Use HTTP protocol (not HTTPS) for development
+  protocol: http
+  createCert: false
+
+  # Elasticsearch roles for this node group
+  roles:
+    - master
+    - data
+    - data_content
+    - data_hot
+    - data_warm
+    - data_cold
+    - ingest
+    - ml
+    - remote_cluster_client
+    - transform
+
+  # JVM heap size (should be ~50% of memory limit)
+  esJavaOpts: "-Xmx1g -Xms1g"
+
+  # Resource allocation
   resources:
     requests:
-      memory: "1Gi"
       cpu: "500m"
-    limits:
       memory: "2Gi"
+    limits:
       cpu: "1000m"
+      memory: "2Gi"
 
-  # Persistence for Elasticsearch data
-  persistence:
-    enabled: true
-    size: 10Gi  # Volume size for data storage
-    storageClass: ""  # Use default storage class (specify for production)
+  # Persistent storage configuration
+  volumeClaimTemplate:
+    accessModes: [ "ReadWriteOnce" ]
+    storageClassName: "standard"  # Use Minikube's standard storage class
+    resources:
+      requests:
+        storage: 10Gi
+
+  # Disable security for development (enable in production)
+  esConfig:
+    elasticsearch.yml: |
+      xpack.security.enabled: false
+      xpack.security.enrollment.enabled: false
 
   # Service configuration
   service:
     type: ClusterIP
-    port: 9200
+    httpPort: 9200
+    transportPort: 9300
 
 # Ingress configuration (optional - for external access)
 ingress:
@@ -102,7 +131,7 @@ ingress:
 
 # Horizontal Pod Autoscaler (optional)
 autoscaling:
-  enabled: false  # Enable for automatic scaling based on metrics
+  enabled: true  # Enable for automatic scaling based on metrics
   minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80

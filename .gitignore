@@ -62,6 +62,7 @@ secrets/
 
 # Helm
 helm/*/charts/
+helm/*/Chart.lock
 helm/*/.helmignore
 
 # OS

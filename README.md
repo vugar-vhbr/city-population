@@ -13,14 +13,14 @@ This application provides a RESTful API to manage city population data with the 
 
 **Tech Stack:**
 - **Application**: Python 3.11 + FastAPI (async)
-- **Database**: Elasticsearch 8.12
+- **Database**: Elasticsearch 8.12.0 (Docker Compose) / 8.5.1 (Kubernetes Helm Chart)
 - **Containerization**: Docker (multi-stage build)
 - **Orchestration**: Kubernetes
 - **Deployment**: Helm Chart
 
 ---
 
-## 🔌 API Access Ports
+##  API Access Ports
 
 **IMPORTANT: The API port differs depending on your deployment method:**
 
@@ -256,7 +256,27 @@ docker build -t city-population-api:1.0.0 .
 kind load docker-image city-population-api:1.0.0
 ```
 
-#### Step 2: Deploy with Helm
+#### Step 2: Download Helm Dependencies
+
+```bash
+# Navigate to the Helm chart directory
+cd helm/city-population
+
+# Download Elasticsearch chart dependency
+helm dependency update
+
+# This downloads elasticsearch-8.5.1.tgz from https://helm.elastic.co
+# Output: Saving 1 charts, Downloading elasticsearch from repo
+
+# Verify dependency is downloaded
+ls charts/
+# Should show: elasticsearch-8.5.1.tgz
+
+# Return to project root
+cd ../..
+```
+
+#### Step 3: Deploy with Helm
 
 ```bash
 # Create a namespace (optional but recommended)
@@ -274,7 +294,7 @@ helm status city-population -n city-population
 kubectl get pods -n city-population -w
 ```
 
-#### Step 3: Verify Deployment
+#### Step 4: Verify Deployment
 
 ```bash
 # Check all resources
@@ -284,7 +304,7 @@ kubectl get all -n city-population
 kubectl logs -n city-population deployment/city-population-api
 
 # Check Elasticsearch logs
-kubectl logs -n city-population statefulset/elasticsearch
+kubectl logs -n city-population statefulset/elasticsearch-master
 ```
 
 ### Option 2: Deploy with kubectl (Alternative)
@@ -306,9 +326,9 @@ kubectl get all -n city-population
 
 ## API Documentation
 
-### 📍 Access the API
+###  Access the API
 
-#### 🐳 Docker Compose (Port 8000)
+####  Docker Compose (Port 8000)
 
 ```bash
 # Start Docker Compose
@@ -319,7 +339,7 @@ docker-compose up -d
 # ReDoc: http://localhost:8000/redoc
 ```
 
-#### ☸️ Kubernetes (Port 8080)
+####  Kubernetes (Port 8080)
 
 **Method 1: Port Forwarding (Recommended for Testing)**
 
@@ -548,7 +568,7 @@ chmod +x test-api.sh
 kubectl logs -n city-population deployment/city-population-api -f
 
 # Elasticsearch logs
-kubectl logs -n city-population statefulset/elasticsearch -f
+kubectl logs -n city-population statefulset/elasticsearch-master -f
 
 # All pod logs
 kubectl logs -n city-population --all-containers=true -f
@@ -571,7 +591,7 @@ kubectl get events -n city-population --sort-by='.lastTimestamp'
 
 ```bash
 # Port forward Elasticsearch
-kubectl port-forward -n city-population service/elasticsearch 9200:9200
+kubectl port-forward -n city-population service/elasticsearch-master 9200:9200
 
 # Check cluster health
 curl http://localhost:9200/_cluster/health?pretty
@@ -617,28 +637,6 @@ while true; do wget -q -O- http://city-population-api/health; done
 
 ---
 
-## Cleanup
-
-### Remove Helm Deployment
-
-```bash
-# Uninstall the Helm release
-helm uninstall city-population -n city-population
-
-# Delete the namespace
-kubectl delete namespace city-population
-```
-
-### Remove Docker Containers (Local Development)
-
-```bash
-docker stop city-api elasticsearch
-docker rm city-api elasticsearch
-docker rmi city-population-api:1.0.0
-```
-
----
-
 ## Troubleshooting
 
 ### Issue: Pods are in CrashLoopBackOff
@@ -660,7 +658,7 @@ kubectl describe pod -n city-population <pod-name>
 
 ```bash
 # Check logs
-kubectl logs -n city-population elasticsearch-0
+kubectl logs -n city-population elasticsearch-master-0
 
 # Common causes:
 # 1. Insufficient memory - increase elasticsearch.resources.limits.memory
@@ -690,7 +688,7 @@ kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- \
 ```bash
 # Check Elasticsearch connectivity
 kubectl exec -it -n city-population deployment/city-population-api -- \
-  curl http://elasticsearch:9200/_cluster/health
+  curl http://elasticsearch-master:9200/_cluster/health
 
 # Verify ConfigMap
 kubectl get configmap -n city-population city-population-api-config -o yaml
@@ -708,16 +706,3 @@ See [REFLECTION.md](REFLECTION.md) for detailed production hardening recommendat
 - Performance optimization
 
 ---
-
-## Support
-
-For issues or questions:
-1. Check the [Troubleshooting](#troubleshooting) section
-2. Review pod logs: `kubectl logs -n city-population <pod-name>`
-3. Check application logs for detailed error messages
-
----
-
-## License
-
-This project is created for the SRE Take-Home Assignment.

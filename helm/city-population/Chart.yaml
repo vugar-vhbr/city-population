@@ -10,3 +10,10 @@ appVersion: "1.0.0"  # Application version
 maintainers:
   - name: SRE Team
     email: sre@example.com
+
+# Dependencies - External Helm charts this chart depends on
+dependencies:
+  - name: elasticsearch
+    version: "8.5.1"
+    repository: "https://helm.elastic.co"
+    condition: elasticsearch.enabled
