@@ -1,0 +1,121 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your City Population API has been deployed to Kubernetes.
+
+========================================
+DEPLOYMENT INFORMATION
+========================================
+
+Release Name: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
+
+========================================
+ACCESSING THE API
+========================================
+
+{{- if .Values.ingress.enabled }}
+
+The API is available at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+
+{{- else }}
+
+1. Port Forward (Recommended for Testing):
+
+   kubectl port-forward -n {{ .Release.Namespace }} service/{{ .Values.app.name }} 8080:{{ .Values.app.service.port }}
+
+   Then access the API at: http://localhost:8080
+
+2. Get Service URL (Minikube):
+
+   minikube service {{ .Values.app.name }} -n {{ .Release.Namespace }} --url
+
+3. Get Service Endpoint (LoadBalancer):
+
+   kubectl get service {{ .Values.app.name }} -n {{ .Release.Namespace }}
+
+{{- end }}
+
+========================================
+API ENDPOINTS
+========================================
+
+Health Check:
+  GET  /health
+
+Upsert City:
+  POST /city
+  Body: {"city": "Tokyo", "population": 13960000}
+
+Query City:
+  GET  /city/{city_name}
+
+List Cities:
+  GET  /cities
+
+========================================
+USEFUL COMMANDS
+========================================
+
+View Pods:
+  kubectl get pods -n {{ .Release.Namespace }}
+
+View Logs:
+  kubectl logs -n {{ .Release.Namespace }} deployment/{{ .Values.app.name }}
+
+View All Resources:
+  kubectl get all -n {{ .Release.Namespace }}
+
+Scale Application:
+  kubectl scale deployment {{ .Values.app.name }} -n {{ .Release.Namespace }} --replicas=3
+
+========================================
+API DOCUMENTATION
+========================================
+
+Once you have access to the API, view interactive documentation at:
+  - Swagger UI: http://localhost:8080/docs
+  - ReDoc: http://localhost:8080/redoc
+
+========================================
+MONITORING
+========================================
+
+Check Pod Status:
+  kubectl get pods -n {{ .Release.Namespace }} -w
+
+Check Elasticsearch Health:
+  kubectl port-forward -n {{ .Release.Namespace }} service/elasticsearch 9200:9200
+  curl http://localhost:9200/_cluster/health?pretty
+
+View Events:
+  kubectl get events -n {{ .Release.Namespace }} --sort-by='.lastTimestamp'
+
+========================================
+NEXT STEPS
+========================================
+
+1. Wait for all pods to be ready:
+   kubectl wait --for=condition=ready pod --all -n {{ .Release.Namespace }} --timeout=300s
+
+2. Port forward to access the API:
+   kubectl port-forward -n {{ .Release.Namespace }} service/{{ .Values.app.name }} 8080:{{ .Values.app.service.port }}
+
+3. Test the health endpoint:
+   curl http://localhost:8080/health
+
+4. Insert some data:
+   curl -X POST http://localhost:8080/city \
+     -H "Content-Type: application/json" \
+     -d '{"city": "Tokyo", "population": 13960000}'
+
+5. Query the data:
+   curl http://localhost:8080/city/tokyo
+
+========================================
+
+For more information, visit: https://github.com/your-org/city-population-api

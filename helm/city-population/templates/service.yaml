@@ -1,0 +1,23 @@
+# Kubernetes Service for the City Population API
+# Provides stable network endpoint for pod access
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  # Service type (ClusterIP for internal, LoadBalancer for external)
+  type: {{ .Values.app.service.type }}
+
+  # Port configuration
+  ports:
+    - port: {{ .Values.app.service.port }}  # Service port
+      targetPort: {{ .Values.app.service.targetPort }}  # Container port
+      protocol: TCP
+      name: http
+
+  # Select pods with matching labels
+  selector:
+    app: {{ .Values.app.name }}

@@ -1,0 +1,16 @@
+# FastAPI - Modern web framework for building APIs
+fastapi==0.109.0
+
+# Uvicorn - ASGI server for running FastAPI
+uvicorn[standard]==0.27.0
+
+# Elasticsearch - Official async Elasticsearch client
+elasticsearch==8.12.0
+aiohttp==3.9.1
+
+# Pydantic - Data validation and settings management
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Python-dotenv - Load environment variables from .env files
+python-dotenv==1.0.0

@@ -1,0 +1,14 @@
+# ConfigMap for application environment variables
+# Externalizes configuration from container image
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.app.name }}-config
+  labels:
+    app: {{ .Values.app.name }}
+data:
+  # Elasticsearch connection settings
+  ELASTICSEARCH_HOST: {{ .Values.app.env.ELASTICSEARCH_HOST | quote }}
+  ELASTICSEARCH_INDEX: {{ .Values.app.env.ELASTICSEARCH_INDEX | quote }}
+  DEBUG: {{ .Values.app.env.DEBUG | quote }}

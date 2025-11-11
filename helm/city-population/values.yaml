@@ -1,0 +1,109 @@
+# Default values for city-population Helm chart
+# These can be overridden during deployment with --set or custom values file
+
+# Application configuration
+app:
+  name: city-population-api
+  replicaCount: 2  # Number of pod replicas for HA
+
+  image:
+    repository: city-population-api  # Docker image repository
+    tag: "1.0.0"  # Image tag
+    pullPolicy: IfNotPresent  # Pull image only if not present locally
+
+  service:
+    type: ClusterIP  # Internal service (use LoadBalancer for external access)
+    port: 80  # Service port
+    targetPort: 8000  # Container port
+
+  resources:
+    # Resource requests - guaranteed resources
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    # Resource limits - maximum allowed resources
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+
+  # Liveness probe - checks if app is running
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 15  # Wait before first probe
+    periodSeconds: 10  # Probe every 10 seconds
+    timeoutSeconds: 5
+    failureThreshold: 3  # Restart after 3 failures
+
+  # Readiness probe - checks if app is ready to serve traffic
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Environment variables
+  env:
+    ELASTICSEARCH_HOST: "http://elasticsearch:9200"
+    ELASTICSEARCH_INDEX: "cities"
+    DEBUG: "false"
+
+# Elasticsearch configuration
+elasticsearch:
+  enabled: true  # Deploy Elasticsearch as part of this chart
+
+  # Master node configuration
+  master:
+    replicaCount: 1  # Single master for dev (use 3 for production)
+
+  # Data node configuration
+  data:
+    replicaCount: 1  # Single data node for dev (scale for production)
+
+  # Resource allocation for Elasticsearch
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+  # Persistence for Elasticsearch data
+  persistence:
+    enabled: true
+    size: 10Gi  # Volume size for data storage
+    storageClass: ""  # Use default storage class (specify for production)
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 9200
+
+# Ingress configuration (optional - for external access)
+ingress:
+  enabled: false  # Set to true to create ingress resource
+  className: "nginx"  # Ingress controller class
+  annotations: {}
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: city-api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: city-api-tls
+    #   hosts:
+    #     - city-api.example.com
+
+# Horizontal Pod Autoscaler (optional)
+autoscaling:
+  enabled: false  # Enable for automatic scaling based on metrics
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80

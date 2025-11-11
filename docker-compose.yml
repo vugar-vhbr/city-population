@@ -1,0 +1,70 @@
+# Docker Compose configuration for local development
+# Provides easy way to run the application with Elasticsearch
+
+version: '3.8'
+
+services:
+  # Elasticsearch database
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      # Single-node configuration for development
+      - discovery.type=single-node
+      # Disable security for local development
+      - xpack.security.enabled=false
+      # JVM heap size (adjust based on available memory)
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"  # REST API
+      - "9300:9300"  # Node communication
+    volumes:
+      # Persist data across container restarts
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - city-population-network
+    healthcheck:
+      # Check if Elasticsearch is ready
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # City Population API application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: city-population-api
+    ports:
+      - "8000:8000"  # API port
+    environment:
+      # Application configuration
+      - ELASTICSEARCH_HOST=http://elasticsearch:9200
+      - ELASTICSEARCH_INDEX=cities
+      - DEBUG=false
+    depends_on:
+      elasticsearch:
+        # Wait for Elasticsearch to be healthy before starting
+        condition: service_healthy
+    networks:
+      - city-population-network
+    healthcheck:
+      # Check if API is responding
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+# Named volumes for data persistence
+volumes:
+  elasticsearch-data:
+    driver: local
+
+# Custom network for container communication
+networks:
+  city-population-network:
+    driver: bridge

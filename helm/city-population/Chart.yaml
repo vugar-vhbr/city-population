@@ -1,0 +1,12 @@
+# Helm chart metadata
+# Defines the chart name, version, and description
+
+apiVersion: v2
+name: city-population
+description: A Helm chart for City Population API with Elasticsearch
+type: application
+version: 1.0.0  # Chart version
+appVersion: "1.0.0"  # Application version
+maintainers:
+  - name: SRE Team
+    email: sre@example.com
